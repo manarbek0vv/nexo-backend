@@ -23,8 +23,6 @@ impl Users for UsersService {
     ) -> Result<Response<User>, Status> {
         let request = request.into_inner();
 
-        println!("Getting user with username: {}", request.email);
-
         let response =
             self.repository.get_user_by_email(request.email).await;
 
