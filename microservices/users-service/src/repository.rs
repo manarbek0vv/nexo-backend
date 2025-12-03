@@ -1,5 +1,18 @@
 use sqlx::{ Pool, Postgres };
 use crate::structs::{NewUser, User};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum RepositoryError {
+    #[error("database error: {0}")]
+    DatabaseError(#[from] sqlx::Error),
+
+    #[error("user with this email not found")]
+    UserNotFound,
+
+    #[error("user already exists")]
+    UserAlreadyExists
+}
 
 #[derive(Clone, Debug)]
 pub struct UsersRepository {
@@ -13,31 +26,50 @@ impl UsersRepository {
 
     pub async fn get_user_by_email(
         &self,
-        email: String,
-    ) -> Result<Option<User>, sqlx::Error> {
-        sqlx::query_as!(User, "
+        email: &str,
+    ) -> Result<User, RepositoryError> {
+        let result = sqlx::query_as!(
+            User,
+        r#"
             SELECT id, username, email, password
             FROM users
             WHERE email = $1
-        ", email)
+        "#, email)
         .fetch_optional(&self.db)
-        .await
+        .await?;
+
+        result.ok_or(RepositoryError::UserNotFound)
     }
 
     pub async fn create_user(
         &self,
-        data: NewUser,
-    ) -> Result<User, sqlx::error::Error> {
-        sqlx::query_as!(User, "
+        data: &NewUser,
+    ) -> Result<User, RepositoryError> {
+        let result = sqlx::query_as!(
+            User,
+        r#"
             INSERT INTO users (username, email, password)
             VALUES ($1, $2, $3)
             RETURNING id, username, email, password
-        ",
+        "#,
         data.username,
         data.email,
         data.password,
         )
         .fetch_one(&self.db)
-        .await
+        .await;
+
+        match result {
+            Ok(user) => Ok(user),
+            Err(err) => {
+                if let Some(db_err) = err.as_database_error() {
+                    if db_err.is_unique_violation() {
+                            return Err(RepositoryError::UserAlreadyExists)
+                        }
+                }
+
+                Err(RepositoryError::DatabaseError(err))
+            }
+        }
     }
 }

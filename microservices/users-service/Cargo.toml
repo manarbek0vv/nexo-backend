@@ -10,6 +10,7 @@ prost = "0.14.1"
 tonic-prost = "0.14.2"
 sqlx = { version = "0.8.6", features = ["runtime-tokio-rustls", "postgres"] }
 dotenvy = "0.15.7"
+thiserror = "2.0.17"
 
 [build-dependencies]
 tonic-prost-build = "0.14.2"

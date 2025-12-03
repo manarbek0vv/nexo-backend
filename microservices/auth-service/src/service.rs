@@ -1,9 +1,11 @@
-use tonic::{Request, Response, Status, transport::Channel};
+use tonic::{ Code, Request, Response, Status, transport::Channel};
+use thiserror::Error;
 
 use crate::auth::{ self, auth_server::Auth };
 use crate::domain::token::{Payload, generate_access_token, generate_refresh_token};
 use crate::users::{CreateUserRequest, GetUserRequest};
 use crate::users::users_client::UsersClient;
+
 
 use crate::domain::password::{hash_password, verify_password};
 
@@ -12,9 +14,39 @@ pub struct AuthService {
     users_client: UsersClient<Channel>
 }
 
+#[derive(Debug, Error)]
+pub enum AuthError {
+    #[error("Invalid credentials")]
+    InvalidCredentials,
+
+    #[error("User already exists")]
+    UserAlreadyExists,
+
+    #[error("user service internal error")]
+    UserServiceInternal
+}
+
+fn map_users_status_to_auth_error(status: Status) -> AuthError {
+    match status.code() {
+        Code::InvalidArgument => AuthError::InvalidCredentials,
+        Code::AlreadyExists => AuthError::UserAlreadyExists,
+        _ => AuthError::UserServiceInternal,
+
+    }
+}
+
+fn map_auth_error_to_status(error: AuthError) -> Status {
+    match error {
+        AuthError::InvalidCredentials => Status::invalid_argument("invalid credentials"),
+        AuthError::UserAlreadyExists => Status::already_exists("User with this this email exists"),
+        AuthError::UserServiceInternal => Status::internal("Auth service internal error"),
+    }
+}
+
 impl AuthService {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let users_client = UsersClient::connect("http://127.0.0.1:50052").await?;
+        let users_client = 
+            UsersClient::connect("http://127.0.0.1:50052").await?;
         Ok(Self { users_client })
     }
 }
@@ -31,19 +63,9 @@ impl Auth for AuthService {
             Ok(hash) => hash,
             Err(e) => {
                 println!("Error occured: {}", e);
-                return Err(Status::internal(e));
+                return Err(Status::internal("error on password hashing"));
             }
         };
-
-        let mut users_service = self.users_client.clone();
-        let is_user_exists = users_service.get_user(GetUserRequest {
-            email: String::clone(&request.email)
-        }).await;
-
-        if let Ok(_u) = is_user_exists {
-            println!("User with this email already exists");
-            return Err(Status::already_exists("User with this email already exists."));
-        }
 
         let mut users_service = self.users_client.clone();
         let response = users_service.create_user(
@@ -52,19 +74,14 @@ impl Auth for AuthService {
                 email: request.email,
                 password: password_hash,
             }
-        ).await;
-
-        let created_user = match response {
-            Ok(u) => u.into_inner(),
-            Err(e) => {
-                println!("Error sign up.");
-                return Err(e);
-            }
-        };
+        ).await
+        .map_err(map_users_status_to_auth_error)
+        .map_err(map_auth_error_to_status)?
+        .into_inner();
 
         let claims = Payload {
-            sub: created_user.id,
-            username: created_user.username.clone(),
+            sub: response.id,
+            username: response.username.clone(),
         };
 
         let access_token = generate_access_token(claims.clone())
@@ -72,7 +89,7 @@ impl Auth for AuthService {
                 println!("Token generation error.");
                 Status::internal("Failed to generate access token")
             })?;
-        let refresh_token = generate_refresh_token(claims.clone())
+        let _refresh_token = generate_refresh_token(claims.clone())
             .map_err(|_| {
                 println!("Token generation error.");
                 Status::internal("Failed to generate refresh token")
@@ -80,9 +97,9 @@ impl Auth for AuthService {
 
         let response = auth::SignUpResponse {
                 user: Some(auth::User {
-                    id: created_user.id,
-                    username: created_user.username,
-                    email: created_user.email,
+                    id: response.id,
+                    username: response.username,
+                    email: response.email,
                 }),
                 access_token,
         };
@@ -102,13 +119,13 @@ impl Auth for AuthService {
             email: request.email,
         }).await;
 
-        let user = match response {
-            Err(_status) => return Err(Status::unauthenticated("User with this email not found")),
-            Ok(u) => u.into_inner(),
-        };
+        let user = response
+            .map_err(map_users_status_to_auth_error)
+            .map_err(map_auth_error_to_status)?
+            .into_inner();
 
         if let Err(_e) = verify_password(request.password, user.password.clone()) {
-            return Err(Status::unauthenticated("Wrong password."));
+            return Err(Status::invalid_argument("Wrong password."));
         }
 
         let claims = Payload {
@@ -121,7 +138,7 @@ impl Auth for AuthService {
                 println!("Token generation error.");
                 Status::internal("Failed to generate access token")
             })?;
-        let refresh_token = generate_refresh_token(claims.clone())
+        let _refresh_token = generate_refresh_token(claims.clone())
             .map_err(|_| {
                 println!("Token generation error.");
                 Status::internal("Failed to generate refresh token")
