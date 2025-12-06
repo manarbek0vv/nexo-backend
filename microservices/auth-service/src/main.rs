@@ -1,28 +1,26 @@
-use std::env;
-
 use tonic::{ transport::Server };
-use auth::auth_server::{ AuthServer };
+use crate::config::Config;
+use crate::proto::auth::auth_server::{ AuthServer };
 use crate::service::AuthService;
 
 pub mod service;
-pub mod repository;
 pub mod domain;
-
-pub mod auth {
-    tonic::include_proto!("auth");
-}
-pub mod users {
-    tonic::include_proto!("users");
-}
+pub mod proto;
+pub mod config;
+pub mod error;
+pub mod validation;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv().ok();
 
-    let addr = env::var("AUTH_SERVICE")
-        .unwrap_or_else(|_| "127.0.0.1:50051".to_string())
-        .parse()?;
-    let svc = AuthService::new().await?;
+    let config = Config::from_env();
+
+    let addr = config.microservice_url.parse()?;
+
+    let svc = AuthService::new(
+        config.users_service_url
+    ).await?;
 
     println!("Auth service listening on {}", addr);
 

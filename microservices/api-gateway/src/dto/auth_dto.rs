@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-
 // ---------- Sign Up ----------
 #[derive(Serialize)]
 pub struct User {

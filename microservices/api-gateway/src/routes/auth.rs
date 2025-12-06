@@ -8,7 +8,6 @@ pub fn auth_routes() -> Scope {
     web::scope("/auth")
         .service(sign_up)
         .service(sign_in)
-
 }
 
 #[post("/sign-up")]

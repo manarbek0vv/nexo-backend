@@ -1,8 +1,9 @@
 use tonic::{ Request, Response, Status };
-use crate::repository::{RepositoryError, UsersRepository};
-use crate::structs::NewUser;
-use crate::users::users_server::Users;
-use crate::users::{CreateUserRequest, GetUserRequest, User};
+use crate::error::map_repo_err;
+use crate::repository::{UsersRepository};
+use crate::model::NewUser;
+use crate::proto::users::users_server::Users;
+use crate::proto::users::{CreateUserRequest, GetUserRequest, User};
 
 #[derive(Debug, Clone)]
 pub struct UsersService {
@@ -12,20 +13,6 @@ pub struct UsersService {
 impl UsersService {
     pub fn new(repository: UsersRepository) -> Self {
         Self { repository }
-    }
-}
-
-fn map_repo_err(err: RepositoryError) -> Status {
-    match err {
-        RepositoryError::UserNotFound => {
-            Status::not_found("user with email not found")
-        },
-        RepositoryError::UserAlreadyExists => {
-            Status::already_exists("user with this email already exists")
-        },
-        RepositoryError::DatabaseError(_) => {
-            Status::internal("internal server error")
-        }
     }
 }
 

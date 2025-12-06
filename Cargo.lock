@@ -350,6 +350,7 @@ dependencies = [
  "dotenvy",
  "jsonwebtoken",
  "prost",
+ "regex",
  "serde",
  "sqlx",
  "thiserror",

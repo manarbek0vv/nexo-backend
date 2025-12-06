@@ -10,7 +10,6 @@ pub mod dto;
 
 pub mod routes;
 
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();

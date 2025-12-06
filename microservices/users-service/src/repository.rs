@@ -1,18 +1,6 @@
 use sqlx::{ Pool, Postgres };
-use crate::structs::{NewUser, User};
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum RepositoryError {
-    #[error("database error: {0}")]
-    DatabaseError(#[from] sqlx::Error),
-
-    #[error("user with this email not found")]
-    UserNotFound,
-
-    #[error("user already exists")]
-    UserAlreadyExists
-}
+use crate::model::{NewUser, User};
+use crate::error::RepositoryError;
 
 #[derive(Clone, Debug)]
 pub struct UsersRepository {

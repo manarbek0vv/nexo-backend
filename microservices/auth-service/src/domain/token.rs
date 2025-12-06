@@ -86,3 +86,10 @@ pub fn verify_refresh_token(token: String) -> Result<TokenClaims, Error> {
     )
     .map(|token| token.claims)
 }
+
+pub fn generate_tokens(claims: Payload) -> Result<(String, String), Box<dyn std::error::Error>> {
+    let access_token = generate_access_token(claims.clone())?;
+    let refresh_token = generate_refresh_token(claims.clone())?;
+
+    Ok((access_token, refresh_token))
+}
