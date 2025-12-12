@@ -4,6 +4,8 @@ pub struct Config {
     pub gateway_url: String,
     pub auth_service_url: String,
     pub users_service_url: String,
+    pub posts_service_url: String,
+    pub comments_service_url: String,
 }
 
 impl Config {
@@ -12,12 +14,18 @@ impl Config {
             .unwrap_or_else(|_| "127.0.0.1:50051".to_string());
         let users_service = env::var("USERS_SERVICE")
             .unwrap_or_else(|_| "127.0.0.1:50052".to_string());
+        let posts_service = env::var("POSTS_SERVICE")
+            .unwrap_or_else(|_| "127.0.0.1:50053".to_string());
+        let comments_service = env::var("COMMENTS_SERVICE")
+            .unwrap_or_else(|_| "127.0.0.1:50054".to_string());
         
         Self {
             gateway_url: env::var("API_GATEWAY")
                 .unwrap_or_else(|_| "127.0.0.1:8080".to_string()),
             auth_service_url: Self::ensure_http_prefix(&auth_service),
             users_service_url: Self::ensure_http_prefix(&users_service),
+            posts_service_url: Self::ensure_http_prefix(&posts_service),
+            comments_service_url: Self::ensure_http_prefix(&comments_service),
         }
     }
     

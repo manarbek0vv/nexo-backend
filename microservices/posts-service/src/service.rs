@@ -1,5 +1,5 @@
 use tonic::{Request, Response, Status};
-use crate::{proto::proto::posts::{CreatePostRequest, CreatePostResponse, DeletePostRequest, DeletePostResponse, GetPostRequest, GetPostResponse, GetPostsRequest, GetPostsResponse, UpdatePostRequest, UpdatePostResponse, posts_server::Posts}, repository::PostsRepository};
+use crate::{proto::proto::posts::{CreatePostRequest, CreatePostResponse, DeletePostRequest, DeletePostResponse, GetPostRequest, GetPostResponse, GetPostsRequest, GetPostsResponse, UpdatePostRequest, UpdatePostResponse, posts_server::Posts}, repository::PostsRepository, validation::validate_post};
 
 #[derive(Debug)]
 pub struct PostsService {
@@ -18,7 +18,7 @@ impl Posts for PostsService {
         &self,
         request: Request<GetPostRequest>,
     ) -> Result<Response<GetPostResponse>, Status> {
-        let request = &request.into_inner();
+        let request = request.into_inner();
 
         let post = self.repository.get_post(request)
             .await.map_err(|_| Status::not_found("post with this id not found"))?;
@@ -48,7 +48,10 @@ impl Posts for PostsService {
         &self,
         request: Request<CreatePostRequest>,
     ) -> Result<Response<CreatePostResponse>, Status> {
-        let request = &request.into_inner();
+        let request = request.into_inner();
+
+        validate_post(&request.title, &request.description)
+        .map_err(|e| Status::invalid_argument(e))?;
 
         let created_post = self.repository.create_post(request)
             .await.map_err(|_| Status::internal("Error on creating post"))?;
@@ -64,7 +67,10 @@ impl Posts for PostsService {
         &self,
         request: Request<UpdatePostRequest>,
     ) -> Result<Response<UpdatePostResponse>, Status> {
-        let request = &request.into_inner();
+        let request = request.into_inner();
+
+        validate_post(&request.title, &request.description)
+        .map_err(|e| Status::invalid_argument(e))?;
 
         let updated_post = self.repository.update_post(request)
             .await.map_err(|_| Status::internal("Error on updating post"))?;
@@ -80,7 +86,7 @@ impl Posts for PostsService {
         &self,
         request: Request<DeletePostRequest>,
     ) -> Result<Response<DeletePostResponse>, Status> {
-        let request = &request.into_inner();
+        let request = request.into_inner();
 
         let deleted_post = self.repository.delete_post(request)
             .await.map_err(|_| Status::internal("Error on deleting post"))?;

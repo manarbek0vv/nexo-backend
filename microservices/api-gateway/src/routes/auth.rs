@@ -37,7 +37,7 @@ async fn sign_up(
     let http_response = SignUpResponse {
         user: User {
             id: response.user.as_ref()
-                .map(|u| u.id)
+                .map(|u| u.id.clone())
                 .unwrap_or_default(),
             username: response.user.as_ref()
                 .map(|u| u.username.clone())
@@ -81,7 +81,7 @@ async fn sign_in(
     let http_response = SignInResponse {
         user: User {
             id: response.user.as_ref()
-                .map(|u| u.id)
+                .map(|u| u.id.clone())
                 .unwrap_or_default(),
             username: response.user.as_ref()
                 .map(|u| u.username.clone())

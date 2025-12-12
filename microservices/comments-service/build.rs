@@ -3,9 +3,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tonic_prost_build::configure().compile_protos(
         &[
-            format!("{proto_dir}/auth.proto"),
-            format!("{proto_dir}/users.proto"),
-            format!("{proto_dir}/posts.proto"),
             format!("{proto_dir}/comments.proto"),
         ],
         &[proto_dir],

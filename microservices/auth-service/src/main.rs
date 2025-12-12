@@ -9,6 +9,7 @@ pub mod proto;
 pub mod config;
 pub mod error;
 pub mod validation;
+pub mod model;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

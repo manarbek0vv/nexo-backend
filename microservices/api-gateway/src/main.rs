@@ -1,5 +1,7 @@
 use actix_web::{App, HttpServer, middleware::Logger, web };
 
+use crate::routes::comments::comments_routes;
+use crate::routes::posts::posts_routes;
 use crate::{config::Config, state::AppState};
 use crate::routes::{ auth::auth_routes, health::health_routes };
 
@@ -7,7 +9,7 @@ pub mod state;
 pub mod config;
 pub mod proto;
 pub mod dto;
-
+pub mod domain;
 pub mod routes;
 
 #[actix_web::main]
@@ -34,6 +36,8 @@ async fn main() -> std::io::Result<()> {
             web::scope("/api")
                 .service(health_routes())
                 .service(auth_routes())
+                .service(posts_routes())
+                .service(comments_routes())
         )
     })
     .bind(("127.0.0.1", 8080))?

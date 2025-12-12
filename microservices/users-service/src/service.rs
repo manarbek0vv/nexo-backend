@@ -1,7 +1,6 @@
 use tonic::{ Request, Response, Status };
 use crate::error::map_repo_err;
 use crate::repository::{UsersRepository};
-use crate::model::NewUser;
 use crate::proto::users::users_server::Users;
 use crate::proto::users::{CreateUserRequest, GetUserRequest, User};
 
@@ -26,16 +25,12 @@ impl Users for UsersService {
 
         let user = self
             .repository
-            .get_user_by_email(&request.email)
+            .get_user(request)
             .await
             .map_err(map_repo_err)?;
 
-        let response = User {
-            id: user.id,
-            email: user.email,
-            username: user.username,
-            password: user.password,
-        };
+        let response: User = user.try_into()
+            .map_err(|_| Status::internal("Internal server error"))?;
 
         Ok(Response::new(response))
     }
@@ -46,24 +41,14 @@ impl Users for UsersService {
     ) -> Result<Response<User>, Status> {
         let request = request.into_inner();
 
-        let request_for_repo = NewUser {
-            username: request.username,
-            email: request.email,
-            password: request.password,
-        };
-
         let user = self
         .repository
-        .create_user(&request_for_repo)
+        .create_user(request)
         .await
         .map_err(map_repo_err)?;
 
-        let response = User {
-                id: user.id,
-                username: user.username,
-                email: user.email,
-                password: user.password,
-        };
+        let response: User = user.try_into()
+            .map_err(|_| Status::internal("Internal server error"))?;
 
         Ok(Response::new(response))
     }

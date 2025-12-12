@@ -1,5 +1,6 @@
 use tonic::{ Request, Response, Status, transport::Channel};
 
+use crate::proto::auth::SignUpRequest;
 use crate::proto::auth::{ self, auth_server::Auth };
 use crate::domain::token::{Payload, generate_tokens};
 use crate::proto::users::{CreateUserRequest, GetUserRequest};
@@ -18,6 +19,7 @@ impl AuthService {
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let users_client =
             UsersClient::connect(users_service_url).await?;
+
         Ok(Self { users_client })
     }
 }
@@ -36,18 +38,19 @@ impl Auth for AuthService {
         let password_hash = hash_password(input.password)
             .map_err(|_| Status::internal("error on password hasing"))?;
 
+        let request = SignUpRequest {
+            username: input.username,
+            email: input.email,
+            password: password_hash,
+        };
+
         let mut users_service = self.users_client.clone();
-        let response = users_service.create_user(
-            CreateUserRequest {
-                username: input.username,
-                email: input.email,
-                password: password_hash,
-            }
-        ).await?
+        let response = users_service.create_user(CreateUserRequest::from(request))
+        .await?
         .into_inner();
 
         let claims = Payload {
-            sub: response.id,
+            sub: response.id.clone(),
             username: response.username.clone(),
         };
 
@@ -89,7 +92,7 @@ impl Auth for AuthService {
             .map_err(|_| Status::unauthenticated("Wrong password."))?;
 
         let claims = Payload {
-            sub: user.id,
+            sub: user.id.clone(),
             username: user.username.clone(),
         };
 

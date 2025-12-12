@@ -15,17 +15,18 @@ service Posts {
 // -------------- COMMON --------------
 
 message Post {
-    int64 id = 1;
-    int64 user_id = 2;
+    string id = 1;
+    string user_id = 2;
     string title = 3;
     string description = 4;
     google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp updated_at = 6;
 }
 
 // --------------- Messages ---------------
 
 message GetPostRequest {
-    int64 id = 1;
+    string id = 1;
 }
 
 message GetPostResponse {
@@ -43,7 +44,7 @@ message GetPostsResponse {
 // ------------------------------
 
 message CreatePostRequest {
-    int64 user_id = 1;
+    string user_id = 1;
     string title = 2;
     string description = 3;
 }
@@ -55,7 +56,7 @@ message CreatePostResponse {
 // ------------------------------
 
 message UpdatePostRequest {
-    int64 id = 1;
+    string id = 1;
     string title = 2;
     string description = 3;
 }
@@ -67,7 +68,7 @@ message UpdatePostResponse {
 // ------------------------------
 
 message DeletePostRequest {
-    int64 id = 1;
+    string id = 1;
 }
 
 message DeletePostResponse {

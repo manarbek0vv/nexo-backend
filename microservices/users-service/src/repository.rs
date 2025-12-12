@@ -1,6 +1,7 @@
 use sqlx::{ Pool, Postgres };
-use crate::model::{NewUser, User};
+use crate::model::{CreateUserRepo, GetUserRepo, User};
 use crate::error::RepositoryError;
+use crate::proto::users::{CreateUserRequest, GetUserRequest};
 
 #[derive(Clone, Debug)]
 pub struct UsersRepository {
@@ -12,37 +13,43 @@ impl UsersRepository {
         Self { db }
     }
 
-    pub async fn get_user_by_email(
+    pub async fn get_user(
         &self,
-        email: &str,
+        value: GetUserRequest,
     ) -> Result<User, RepositoryError> {
+        let GetUserRepo { email } = value.into();
+
         let result = sqlx::query_as!(
             User,
-        r#"
+            r#"
             SELECT id, username, email, password
             FROM users
             WHERE email = $1
-        "#, email)
-        .fetch_optional(&self.db)
+            "#,
+            email
+        )
+        .fetch_one(&self.db)
         .await?;
 
-        result.ok_or(RepositoryError::UserNotFound)
+        Ok(result)
     }
 
     pub async fn create_user(
         &self,
-        data: &NewUser,
+        value: CreateUserRequest,
     ) -> Result<User, RepositoryError> {
+        let CreateUserRepo { username, email, password } = value.into();
+
         let result = sqlx::query_as!(
             User,
-        r#"
+            r#"
             INSERT INTO users (username, email, password)
             VALUES ($1, $2, $3)
             RETURNING id, username, email, password
-        "#,
-        data.username,
-        data.email,
-        data.password,
+            "#,
+            username,
+            email,
+            password,
         )
         .fetch_one(&self.db)
         .await;

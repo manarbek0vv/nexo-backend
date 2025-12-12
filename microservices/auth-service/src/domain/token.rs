@@ -6,13 +6,13 @@ use chrono::{ Duration, Utc };
 
 #[derive(Clone)]
 pub struct Payload {
-    pub sub: i64,
+    pub sub: String,
     pub username: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenClaims {
-    pub sub: i64,
+    pub sub: String,
     pub username: String,
     pub exp: i64,
 }

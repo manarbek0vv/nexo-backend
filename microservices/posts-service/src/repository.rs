@@ -1,6 +1,6 @@
 use sqlx::{Pool, Postgres};
 
-use crate::model::{Post};
+use crate::model::{CreatePostRepo, DeletePostRepo, GetPostRepo, Post, UpdatePostRepo};
 use crate::proto::proto::posts::{CreatePostRequest, DeletePostRequest, GetPostRequest, UpdatePostRequest};
 use crate::{error::RepositoryError};
 
@@ -16,20 +16,22 @@ impl PostsRepository {
 
     pub async fn get_post(
         &self,
-        value: &GetPostRequest,
+        value: GetPostRequest,
     ) -> Result<Post, RepositoryError> {
-        let id = value.id;
+        let GetPostRepo { id } = value.try_into()?;
 
         let result = sqlx::query_as!(
             Post,
-        r#"
+            r#"
             SELECT * FROM posts
             WHERE id = $1
-        "#, id
-        ).fetch_optional(&self.db)
+            "#,
+            id
+        )
+        .fetch_one(&self.db)
         .await?;
 
-        result.ok_or(RepositoryError::PostNotFound)
+        Ok(result)
     }
 
     pub async fn get_posts(
@@ -37,10 +39,11 @@ impl PostsRepository {
     ) -> Result<Vec<Post>, RepositoryError> {
         let result = sqlx::query_as!(
             Post,
-        r#"
+            r#"
             SELECT * FROM posts
-        "#
-        ).fetch_all(&self.db)
+            "#
+        )
+        .fetch_all(&self.db)
         .await?;
 
         Ok(result)
@@ -48,56 +51,65 @@ impl PostsRepository {
 
     pub async fn create_post(
         &self,
-        value: &CreatePostRequest,
+        value: CreatePostRequest,
     ) -> Result<Post, RepositoryError> {
-        let CreatePostRequest { title, description, user_id } = value;
+        let CreatePostRepo { title, description, user_id } = value.try_into()?;
 
-        sqlx::query_as!(
+        let post = sqlx::query_as!(
             Post,
-        r#"
+            r#"
             INSERT INTO posts (title, description, user_id)
             VALUES ($1, $2, $3)
-            RETURNING id, title, description, user_id, created_at
-        "#, title, description, user_id
-        ).fetch_one(&self.db)
-        .await
-        .map_err(|e| RepositoryError::DatabaseError(e))
+            RETURNING id, title, description, user_id, created_at, updated_at
+            "#,
+            title,
+            description,
+            user_id
+        )
+        .fetch_one(&self.db)
+        .await?;
+
+        Ok(post)
     }
 
     pub async fn update_post(
         &self,
-        value: &UpdatePostRequest,
+        value: UpdatePostRequest,
     ) -> Result<Post, RepositoryError> {
-        let UpdatePostRequest { id, title, description } = value;
+        let UpdatePostRepo { id, title, description } = value.try_into()?;
 
-        sqlx::query_as!(
+        let result = sqlx::query_as!(
             Post,
-        r#"
+            r#"
             UPDATE posts
             SET title = $1, description = $2
             WHERE id = $3
-            RETURNING id, title, description, user_id, created_at
-        "#, title, description, id
-        ).fetch_one(&self.db)
-        .await
-        .map_err(|e| RepositoryError::DatabaseError(e))
+            RETURNING id, title, description, user_id, created_at, updated_at
+            "#, title, description, id
+        )
+        .fetch_one(&self.db)
+        .await?;
+
+        Ok(result)
     }
 
     pub async fn delete_post(
         &self,
-        value: &DeletePostRequest,
+        value: DeletePostRequest,
     ) -> Result<Post, RepositoryError> {
-        let id = value.id;
+        let DeletePostRepo { id } = value.try_into()?;
 
-        sqlx::query_as!(
+        let result = sqlx::query_as!(
             Post,
-        r#"
+            r#"
             DELETE FROM posts
             WHERE id = $1
-            RETURNING id, title, description, user_id, created_at
-        "#, id
-        ).fetch_one(&self.db)
-        .await
-        .map_err(|e| RepositoryError::DatabaseError(e))
+            RETURNING id, title, description, user_id, created_at, updated_at
+            "#, id
+        )
+        .fetch_one(&self.db)
+        .await?;
+
+        Ok(result)
     }
 }
