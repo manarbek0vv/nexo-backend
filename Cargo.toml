@@ -1,7 +1,9 @@
 [workspace]
 members = [
     "microservices/api-gateway",
-    "microservices/auth-service", "microservices/comments-service", "microservices/posts-service",
+    "microservices/auth-service",
+    "microservices/comments-service",
+    "microservices/posts-service",
     "microservices/users-service"
 ]
 resolver = "3"

@@ -7,7 +7,6 @@ CREATE TABLE comments (
     user_id UUID NOT NULL,
     post_id UUID NOT NULL,
 
-
     CONSTRAINT comments_users_fkey
     FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT comments_posts_fkey
